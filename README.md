@@ -42,6 +42,10 @@ Thinking is on by default, as on the model card. A request turns it off with
   (`hibana/model/flashnext/config.py`). It fetches the 3-bit copies for every profile, so switching profiles needs no
   new download.
 - `tools/serve.sh`: maps the settings below to `hibana serve flashnext`.
+- `patches/0001-tool-args-anyof.patch`: Hibana 0.1.0 casts a tool argument only by the schema's `type`, so an
+  optional list (`anyOf: [array, null]`, what Pydantic writes for `Optional[list[str]]`) reached the tool as the
+  string `'["a@b.c"]'`. The tool rejected it and the model retried until it ran out of tokens. The patch also reads
+  `anyOf`, `oneOf` and type lists; `patches/test_0001_tool_args_anyof.py` checks it during the image build.
 - `tools/check.py`: standard library only. `--needle 32000 131072` adds long-context retrieval.
 
 ## Configuration
@@ -61,7 +65,7 @@ Put overrides in `.env` (see `.env.example`).
 | `HF_CACHE` | `~/.cache/huggingface` | Shared Hugging Face cache for the checkpoint |
 | `DATA_DIR` | `~/.cache/hibana-flashnext` | 3-bit copies, SSD tier, logs |
 | `KERNEL_CACHE` | `DATA_DIR/kernels` | First-use kernel builds |
-| `HIBANA_IMAGE` / `HIBANA_COMMIT` | `hibana-flashnext:d474b74d-r1` / `d474b74` | Engine build; bump `-rN` with every Dockerfile change |
+| `HIBANA_IMAGE` / `HIBANA_COMMIT` | `hibana-flashnext:d474b74d-r2` / `d474b74` | Engine build; bump `-rN` with every Dockerfile change |
 | `HF_TOKEN` | empty | The checkpoints are public; a token only lifts rate limits |
 
 ## Speed

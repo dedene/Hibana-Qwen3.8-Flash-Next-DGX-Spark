@@ -22,8 +22,14 @@ RUN git init -q . \
     && git checkout -q FETCH_HEAD \
     && test "$(git rev-parse HEAD)" = "$HIBANA_COMMIT"
 RUN uv sync --frozen
+# Patches go on after the sync (the project is installed editable), so a patch change keeps the cached environment.
+# 0001: cast tool arguments by anyOf/oneOf and type lists too, so an Optional[list] arrives as a list, not a string.
+COPY patches/ /opt/patches/
+RUN git apply /opt/patches/0001-tool-args-anyof.patch \
+    && grep -q 'def _types(schema: dict)' hibana/api/parsers/tools.py
 
 ENV PATH=/opt/hibana/.venv/bin:/usr/local/cuda/bin:$PATH CUDA_HOME=/usr/local/cuda TRITON_CACHE_DIR=/root/.cache/triton
 # No GPU at build time: the launcher is torch-free, so check that it and the locked torch build are there.
 RUN hibana --help >/dev/null \
+    && python /opt/patches/test_0001_tool_args_anyof.py \
     && python -c "import importlib.metadata as m; v = m.version('torch'); assert v.startswith('2.13.0') and 'cu130' in v, v; print('torch', v)"

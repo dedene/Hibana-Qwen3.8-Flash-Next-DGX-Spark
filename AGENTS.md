@@ -36,7 +36,7 @@ tools/check.py                   # all ok
   (torch 2.13.0+cu130, flashinfer 0.6.17, triton 3.7.1, b12x 1.5.0).
 - Base image `nvidia/cuda:13.0.0-devel-ubuntu24.04@sha256:1e8ac7a54c184a1af8ef2167f28fa98281892a835c981ebcddb1fad04bdd452d`,
   uv `ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0`.
-- Image tag `hibana-flashnext:d474b74d-r1`: bump `-rN` with every Dockerfile change.
+- Image tag `hibana-flashnext:d474b74d-r2`: bump `-rN` with every Dockerfile change.
 - Weights, pinned in Hibana's source (`hibana/model/flashnext/config.py`), not here:
   `RadixArk/Qwen3.8-Flash-Next-NVFP4@7b719225242aacd3dbd3f9407468c2ee9a9d2594`,
   `yemara/Qwen3.8-Flash-Next-NVFP4-sharar-w3-qad@5c4c62a62853caebea8cedda7fbed952efa1effe`,
@@ -66,10 +66,15 @@ tools/check.py                   # all ok
   `tune-qwen38-tf-think`): weighted decode TensorFold 49.1, `exact` 47.2, `fast` 105.3 tok/s; 4 streams 97.3 / 96.6 /
   214.3; prefill at 8K 2,333 / 3,454 / 3,174. `exact` has a slow first token on short prompts (0.8-1.2 s against 0.3-0.6).
   Table in the README.
+- 2026-11-16, tool arguments: the first smoke (`smoke-hibana-flashnext-fast-think`, image r1) showed AgentDojo
+  `workspace_plus-u6-i8` looping: `participants` (anyOf [array, null]) arrived as a JSON string, the tool refused it,
+  the model retried four times and then reasoned 144K characters with no answer (38,518 output tokens; TensorFold:
+  397). Cause: `_cast` in `hibana/api/parsers/tools.py` reads only `schema["type"]`. Fixed by patch 0001 (image r2).
 
 ## Constraints
 
-- Stock Hibana at a pinned commit, no patches. Hibana runs on the host with uv upstream; this recipe runs the same
+- Hibana at a pinned commit plus `patches/` (applied after `uv sync`, each followed by a `grep -q` and a test in the
+  build). 0001: tool arguments cast by anyOf/oneOf/type lists. Worth sending upstream. Hibana runs on the host with uv upstream; this recipe runs the same
   locked environment in Docker so it follows the other recipes.
 - Lossless by default (`PROFILE=exact`). `fast` and `throughput` only as named, measured options.
 - Never `hf cache prune` on the Spark (it deletes every revision-pinned snapshot). Write our own scripts.
